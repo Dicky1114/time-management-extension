@@ -289,8 +289,9 @@ async function loadDay() {
   state.date = date;
   state.tasks = normalizeTasks(userData.days?.[date]);
   const fromTasks = normalizeProjects(state.tasks.map((t) => t.project));
+  const taskNamesFromTasks = normalizeTaskNames(state.tasks.map((t) => t.name));
   state.projects = normalizeProjects([...(userData.projects || []), ...fromTasks]);
-  state.taskNames = normalizeTaskNames(userData.taskNames || []);
+  state.taskNames = normalizeTaskNames([...(userData.taskNames || []), ...taskNamesFromTasks]);
 
   renderSelects();
   renderMasterLists();
@@ -363,6 +364,14 @@ function closeAllComboMenus() {
 
 function renderComboMenu(menuEl, items, inputEl) {
   const frag = document.createDocumentFragment();
+  if (items.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "combo-empty";
+    empty.textContent = "候補なし";
+    frag.appendChild(empty);
+    menuEl.replaceChildren(frag);
+    return;
+  }
   items.forEach((name) => {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -375,15 +384,20 @@ function renderComboMenu(menuEl, items, inputEl) {
   menuEl.replaceChildren(frag);
 }
 
-function bindComboOpen(buttonEl, menuEl) {
-  buttonEl.addEventListener("click", (ev) => {
+function bindComboOpen(buttonEl, menuEl, inputEl) {
+  const onOpen = (ev) => {
     ev.preventDefault();
+    ev.stopPropagation();
+
     const isHidden = menuEl.classList.contains("hidden");
     closeAllComboMenus();
     if (isHidden) {
       menuEl.classList.remove("hidden");
     }
-  });
+    inputEl.focus();
+  };
+  buttonEl.addEventListener("pointerdown", onOpen);
+  buttonEl.addEventListener("click", onOpen);
 }
 
 function bindComboInputFocus(inputEl, menuEl) {
@@ -1069,10 +1083,10 @@ document.getElementById("clearDoneBtn").addEventListener("click", clearDoneTasks
 document.getElementById("addMasterProjectBtn").addEventListener("click", addMasterProject);
 document.getElementById("addMasterTaskNameBtn").addEventListener("click", addMasterTaskName);
 document.getElementById("addSubTaskBtn").addEventListener("click", addSubTask);
-bindComboOpen(el.newProjectOpenBtn, el.newProjectMenu);
-bindComboOpen(el.newTaskNameOpenBtn, el.newTaskNameMenu);
-bindComboOpen(el.parallelProjectOpenBtn, el.parallelProjectMenu);
-bindComboOpen(el.parallelTaskNameOpenBtn, el.parallelTaskNameMenu);
+bindComboOpen(el.newProjectOpenBtn, el.newProjectMenu, el.newProjectField);
+bindComboOpen(el.newTaskNameOpenBtn, el.newTaskNameMenu, el.newTaskNameField);
+bindComboOpen(el.parallelProjectOpenBtn, el.parallelProjectMenu, el.parallelProjectField);
+bindComboOpen(el.parallelTaskNameOpenBtn, el.parallelTaskNameMenu, el.parallelTaskNameField);
 bindComboInputFocus(el.newProjectField, el.newProjectMenu);
 bindComboInputFocus(el.newTaskNameField, el.newTaskNameMenu);
 bindComboInputFocus(el.parallelProjectField, el.parallelProjectMenu);

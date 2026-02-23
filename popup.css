@@ -145,6 +145,9 @@ h3 {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
   box-shadow: none;
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
 }
 
 .combo-menu {
@@ -175,6 +178,12 @@ h3 {
 .combo-item:hover {
   background: #f3f4f6;
   color: var(--text);
+}
+
+.combo-empty {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 6px 8px;
 }
 
 /* ── Form Elements ──────────────── */
