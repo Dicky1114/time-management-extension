@@ -130,6 +130,10 @@ h3 {
   gap: 0;
 }
 
+.combo-field {
+  position: relative;
+}
+
 .combo-wrap input {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
