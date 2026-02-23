@@ -23,8 +23,6 @@ const el = {
   newTaskNameField: document.getElementById("newTaskNameField"),
   projectOptions: document.getElementById("projectOptions"),
   taskNameOptions: document.getElementById("taskNameOptions"),
-  quickAddProject: document.getElementById("quickAddProject"),
-  quickAddTaskName: document.getElementById("quickAddTaskName"),
   newPlanned: document.getElementById("newPlanned"),
   newNote: document.getElementById("newNote"),
   userList: document.getElementById("userList"),
@@ -1012,44 +1010,6 @@ function tickRunning() {
   el.activeSummary.textContent = `進行中: ${running.length}件 / 合計タイマー: ${formatClock(runningTotalSec)}`;
 }
 
-/* ── Quick Add ─────────────────── */
-
-function quickAddProject() {
-  if (!state.user) {
-    show("担当者を入力してください", true);
-    return;
-  }
-  const name = ensureProjectExists(el.quickAddProject.value);
-  if (!name) {
-    show("案件名を入力してください", true);
-    return;
-  }
-  el.quickAddProject.value = "";
-  renderSelects();
-  renderMasterLists();
-  scheduleSave();
-  el.newProjectField.value = name;
-  show(`案件「${name}」を追加しました`);
-}
-
-function quickAddTaskName() {
-  if (!state.user) {
-    show("担当者を入力してください", true);
-    return;
-  }
-  const name = ensureTaskNameExists(el.quickAddTaskName.value);
-  if (!name) {
-    show("工数名を入力してください", true);
-    return;
-  }
-  el.quickAddTaskName.value = "";
-  renderSelects();
-  renderMasterLists();
-  scheduleSave();
-  el.newTaskNameField.value = name;
-  show(`工数名「${name}」を追加しました`);
-}
-
 /* ── Event Listeners ───────────── */
 
 document.getElementById("addBtn").addEventListener("click", addTask);
@@ -1072,12 +1032,6 @@ el.masterProjectInput.addEventListener("keydown", (ev) => {
 });
 el.masterTaskNameInput.addEventListener("keydown", (ev) => {
   if (ev.key === "Enter") addMasterTaskName();
-});
-el.quickAddProject.addEventListener("keydown", (ev) => {
-  if (ev.key === "Enter") quickAddProject();
-});
-el.quickAddTaskName.addEventListener("keydown", (ev) => {
-  if (ev.key === "Enter") quickAddTaskName();
 });
 el.newPlanned.addEventListener("input", () => {
   if (el.parallelToggle.checked && pendingSubTasks.length > 0) {
@@ -1107,8 +1061,6 @@ document.addEventListener("click", (ev) => {
   if (action === "remove-master-project") removeMasterProject(btn.dataset.project);
   if (action === "remove-master-taskname") removeMasterTaskName(btn.dataset.taskname);
   if (action === "remove-subtask") removeSubTask(Number(btn.dataset.index));
-  if (action === "quick-add-project") quickAddProject();
-  if (action === "quick-add-taskname") quickAddTaskName();
 });
 
 document.addEventListener("input", (ev) => {
