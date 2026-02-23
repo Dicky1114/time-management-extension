@@ -122,6 +122,57 @@ h3 {
   flex-shrink: 0;
 }
 
+/* ── Single Combo Field ────────── */
+
+.combo-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.combo-wrap input {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.combo-open {
+  padding: 0 10px;
+  min-width: 34px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  box-shadow: none;
+}
+
+.combo-menu {
+  display: grid;
+  gap: 2px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 2px);
+  z-index: 50;
+  max-height: 120px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: #fff;
+  padding: 4px;
+}
+
+.combo-item {
+  width: 100%;
+  text-align: left;
+  background: #fff;
+  color: var(--text);
+  border-radius: var(--radius-xs);
+  padding: 6px 8px;
+}
+
+.combo-item:hover {
+  background: #f3f4f6;
+  color: var(--text);
+}
+
 /* ── Form Elements ──────────────── */
 
 input,

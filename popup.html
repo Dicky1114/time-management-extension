@@ -47,11 +47,19 @@
           <div id="normalFields" class="stack">
             <label>
               案件名
-              <input id="newProjectField" list="projectOptions" placeholder="入力 or 候補選択（未登録は自動追加）" />
+              <div class="combo-wrap">
+                <input id="newProjectField" list="projectOptions" placeholder="入力 or 候補選択（未登録は自動追加）" />
+                <button id="newProjectOpenBtn" type="button" class="combo-open" aria-label="案件候補を開く">▼</button>
+              </div>
+              <div id="newProjectMenu" class="combo-menu hidden"></div>
             </label>
             <label>
               工数名
-              <input id="newTaskNameField" list="taskNameOptions" placeholder="入力 or 候補選択（未登録は自動追加）" />
+              <div class="combo-wrap">
+                <input id="newTaskNameField" list="taskNameOptions" placeholder="入力 or 候補選択（未登録は自動追加）" />
+                <button id="newTaskNameOpenBtn" type="button" class="combo-open" aria-label="工数候補を開く">▼</button>
+              </div>
+              <div id="newTaskNameMenu" class="combo-menu hidden"></div>
             </label>
           </div>
 
@@ -64,11 +72,19 @@
               <div class="row sub-builder-row">
                 <label class="grow">
                   案件名
-                  <input id="parallelProjectField" list="projectOptions" placeholder="入力 or 候補選択" />
+                  <div class="combo-wrap">
+                    <input id="parallelProjectField" list="projectOptions" placeholder="入力 or 候補選択" />
+                    <button id="parallelProjectOpenBtn" type="button" class="combo-open" aria-label="案件候補を開く">▼</button>
+                  </div>
+                  <div id="parallelProjectMenu" class="combo-menu hidden"></div>
                 </label>
                 <label class="grow">
                   工数名
-                  <input id="parallelTaskNameField" list="taskNameOptions" placeholder="入力 or 候補選択" />
+                  <div class="combo-wrap">
+                    <input id="parallelTaskNameField" list="taskNameOptions" placeholder="入力 or 候補選択" />
+                    <button id="parallelTaskNameOpenBtn" type="button" class="combo-open" aria-label="工数候補を開く">▼</button>
+                  </div>
+                  <div id="parallelTaskNameMenu" class="combo-menu hidden"></div>
                 </label>
                 <label>
                   配分(割)

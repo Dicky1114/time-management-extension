@@ -21,6 +21,10 @@ const el = {
   message: document.getElementById("message"),
   newProjectField: document.getElementById("newProjectField"),
   newTaskNameField: document.getElementById("newTaskNameField"),
+  newProjectOpenBtn: document.getElementById("newProjectOpenBtn"),
+  newTaskNameOpenBtn: document.getElementById("newTaskNameOpenBtn"),
+  newProjectMenu: document.getElementById("newProjectMenu"),
+  newTaskNameMenu: document.getElementById("newTaskNameMenu"),
   projectOptions: document.getElementById("projectOptions"),
   taskNameOptions: document.getElementById("taskNameOptions"),
   newPlanned: document.getElementById("newPlanned"),
@@ -41,6 +45,10 @@ const el = {
   parallelGroupName: document.getElementById("parallelGroupName"),
   parallelProjectField: document.getElementById("parallelProjectField"),
   parallelTaskNameField: document.getElementById("parallelTaskNameField"),
+  parallelProjectOpenBtn: document.getElementById("parallelProjectOpenBtn"),
+  parallelTaskNameOpenBtn: document.getElementById("parallelTaskNameOpenBtn"),
+  parallelProjectMenu: document.getElementById("parallelProjectMenu"),
+  parallelTaskNameMenu: document.getElementById("parallelTaskNameMenu"),
   parallelRatioInput: document.getElementById("parallelRatioInput"),
   subTaskList: document.getElementById("subTaskList"),
 };
@@ -341,6 +349,49 @@ function populateDatalist(listEl, items) {
 function renderSelects() {
   populateDatalist(el.projectOptions, state.projects);
   populateDatalist(el.taskNameOptions, state.taskNames);
+  renderComboMenu(el.newProjectMenu, state.projects, el.newProjectField);
+  renderComboMenu(el.parallelProjectMenu, state.projects, el.parallelProjectField);
+  renderComboMenu(el.newTaskNameMenu, state.taskNames, el.newTaskNameField);
+  renderComboMenu(el.parallelTaskNameMenu, state.taskNames, el.parallelTaskNameField);
+}
+
+function closeAllComboMenus() {
+  [el.newProjectMenu, el.parallelProjectMenu, el.newTaskNameMenu, el.parallelTaskNameMenu].forEach((menu) => {
+    menu.classList.add("hidden");
+  });
+}
+
+function renderComboMenu(menuEl, items, inputEl) {
+  const frag = document.createDocumentFragment();
+  items.forEach((name) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "combo-item";
+    btn.textContent = name;
+    btn.dataset.comboValue = name;
+    btn.dataset.comboTarget = inputEl.id;
+    frag.appendChild(btn);
+  });
+  menuEl.replaceChildren(frag);
+}
+
+function bindComboOpen(buttonEl, menuEl) {
+  buttonEl.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    const isHidden = menuEl.classList.contains("hidden");
+    closeAllComboMenus();
+    if (isHidden) {
+      menuEl.classList.remove("hidden");
+    }
+  });
+}
+
+function bindComboInputFocus(inputEl, menuEl) {
+  inputEl.addEventListener("focus", () => {
+    if (menuEl.childElementCount === 0) return;
+    closeAllComboMenus();
+    menuEl.classList.remove("hidden");
+  });
 }
 
 /* ── Render: Master Lists ──────── */
@@ -1018,6 +1069,14 @@ document.getElementById("clearDoneBtn").addEventListener("click", clearDoneTasks
 document.getElementById("addMasterProjectBtn").addEventListener("click", addMasterProject);
 document.getElementById("addMasterTaskNameBtn").addEventListener("click", addMasterTaskName);
 document.getElementById("addSubTaskBtn").addEventListener("click", addSubTask);
+bindComboOpen(el.newProjectOpenBtn, el.newProjectMenu);
+bindComboOpen(el.newTaskNameOpenBtn, el.newTaskNameMenu);
+bindComboOpen(el.parallelProjectOpenBtn, el.parallelProjectMenu);
+bindComboOpen(el.parallelTaskNameOpenBtn, el.parallelTaskNameMenu);
+bindComboInputFocus(el.newProjectField, el.newProjectMenu);
+bindComboInputFocus(el.newTaskNameField, el.newTaskNameMenu);
+bindComboInputFocus(el.parallelProjectField, el.parallelProjectMenu);
+bindComboInputFocus(el.parallelTaskNameField, el.parallelTaskNameMenu);
 
 el.loginUserInput.addEventListener("change", setUserFromInput);
 el.loginUserInput.addEventListener("blur", setUserFromInput);
@@ -1046,6 +1105,22 @@ el.parallelToggle.addEventListener("change", () => {
 });
 
 document.addEventListener("click", (ev) => {
+  const comboItem = ev.target.closest(".combo-item");
+  if (comboItem) {
+    const targetId = comboItem.dataset.comboTarget || "";
+    const value = comboItem.dataset.comboValue || "";
+    const targetInput = targetId ? document.getElementById(targetId) : null;
+    if (targetInput) {
+      targetInput.value = value;
+      targetInput.focus();
+    }
+    closeAllComboMenus();
+    return;
+  }
+  const clickedCombo = ev.target.closest(".combo-wrap, .combo-menu");
+  if (!clickedCombo) {
+    closeAllComboMenus();
+  }
   const btn = ev.target.closest("button[data-action]");
   if (!btn) return;
 
