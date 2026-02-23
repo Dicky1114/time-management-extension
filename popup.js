@@ -19,10 +19,10 @@ const el = {
   loginState: document.getElementById("loginState"),
   dateInput: document.getElementById("dateInput"),
   message: document.getElementById("message"),
-  newProjectSelect: document.getElementById("newProjectSelect"),
-  newProjectInput: document.getElementById("newProjectInput"),
-  newTaskNameSelect: document.getElementById("newTaskNameSelect"),
-  newTaskNameInput: document.getElementById("newTaskNameInput"),
+  newProjectField: document.getElementById("newProjectField"),
+  newTaskNameField: document.getElementById("newTaskNameField"),
+  projectOptions: document.getElementById("projectOptions"),
+  taskNameOptions: document.getElementById("taskNameOptions"),
   quickAddProject: document.getElementById("quickAddProject"),
   quickAddTaskName: document.getElementById("quickAddTaskName"),
   newPlanned: document.getElementById("newPlanned"),
@@ -41,10 +41,8 @@ const el = {
   normalFields: document.getElementById("normalFields"),
   parallelFields: document.getElementById("parallelFields"),
   parallelGroupName: document.getElementById("parallelGroupName"),
-  parallelProjectSelect: document.getElementById("parallelProjectSelect"),
-  parallelProjectInput: document.getElementById("parallelProjectInput"),
-  parallelTaskNameSelect: document.getElementById("parallelTaskNameSelect"),
-  parallelTaskNameInput: document.getElementById("parallelTaskNameInput"),
+  parallelProjectField: document.getElementById("parallelProjectField"),
+  parallelTaskNameField: document.getElementById("parallelTaskNameField"),
   parallelRatioInput: document.getElementById("parallelRatioInput"),
   subTaskList: document.getElementById("subTaskList"),
 };
@@ -205,16 +203,12 @@ function ensureTaskNameExists(name) {
   return normalized;
 }
 
-function resolveProjectValue(selectEl, inputEl) {
-  const typed = normalizeProjectName(inputEl?.value || "");
-  if (typed) return typed;
-  return normalizeProjectName(selectEl?.value || "");
+function resolveProjectValue(inputEl) {
+  return normalizeProjectName(inputEl?.value || "");
 }
 
-function resolveTaskNameValue(selectEl, inputEl) {
-  const typed = normalizeTaskName(inputEl?.value || "");
-  if (typed) return typed;
-  return normalizeTaskName(selectEl?.value || "");
+function resolveTaskNameValue(inputEl) {
+  return normalizeTaskName(inputEl?.value || "");
 }
 
 function formatWariTotal(total) {
@@ -335,31 +329,20 @@ function setTab(tabName) {
   el.panels.forEach((panel) => panel.classList.toggle("hidden", panel.dataset.panel !== tabName));
 }
 
-/* ── Render: Selects ───────────── */
+/* ── Render: Suggest Lists ─────── */
 
-function populateSelect(selectEl, items, currentValue) {
-  selectEl.innerHTML = '<option value="">(選択)</option>';
+function populateDatalist(listEl, items) {
+  listEl.innerHTML = "";
   items.forEach((name) => {
     const option = document.createElement("option");
     option.value = name;
-    option.textContent = name;
-    selectEl.appendChild(option);
+    listEl.appendChild(option);
   });
-  if (currentValue && items.includes(currentValue)) {
-    selectEl.value = currentValue;
-  }
 }
 
 function renderSelects() {
-  const projVal = el.newProjectSelect.value;
-  const taskVal = el.newTaskNameSelect.value;
-  const parProjVal = el.parallelProjectSelect.value;
-  const parTaskVal = el.parallelTaskNameSelect.value;
-
-  populateSelect(el.newProjectSelect, state.projects, projVal);
-  populateSelect(el.newTaskNameSelect, state.taskNames, taskVal);
-  populateSelect(el.parallelProjectSelect, state.projects, parProjVal);
-  populateSelect(el.parallelTaskNameSelect, state.taskNames, parTaskVal);
+  populateDatalist(el.projectOptions, state.projects);
+  populateDatalist(el.taskNameOptions, state.taskNames);
 }
 
 /* ── Render: Master Lists ──────── */
@@ -875,12 +858,12 @@ function removeMasterTaskName(name) {
 /* ── Sub-task (parallel builder) ── */
 
 function addSubTask() {
-  const name = ensureTaskNameExists(resolveTaskNameValue(el.parallelTaskNameSelect, el.parallelTaskNameInput));
+  const name = ensureTaskNameExists(resolveTaskNameValue(el.parallelTaskNameField));
   if (!name) {
     show("工数名を選択または入力してください", true);
     return;
   }
-  const project = ensureProjectExists(resolveProjectValue(el.parallelProjectSelect, el.parallelProjectInput));
+  const project = ensureProjectExists(resolveProjectValue(el.parallelProjectField));
   const ratio = normalizeWariRatio(el.parallelRatioInput.value);
   const currentTotal = pendingSubTasks.reduce((sum, st) => sum + normalizeWariRatio(st.ratio), 0);
   if (currentTotal + ratio > 10) {
@@ -888,10 +871,8 @@ function addSubTask() {
     return;
   }
   pendingSubTasks.push({ name, project, ratio });
-  el.parallelTaskNameSelect.value = "";
-  el.parallelTaskNameInput.value = "";
-  el.parallelProjectSelect.value = "";
-  el.parallelProjectInput.value = "";
+  el.parallelTaskNameField.value = "";
+  el.parallelProjectField.value = "";
   el.parallelRatioInput.value = "1.0";
   renderSelects();
   renderMasterLists();
@@ -958,19 +939,17 @@ function addTask() {
     });
     pendingSubTasks = [];
     el.parallelGroupName.value = "";
-    el.parallelTaskNameSelect.value = "";
-    el.parallelTaskNameInput.value = "";
-    el.parallelProjectSelect.value = "";
-    el.parallelProjectInput.value = "";
+    el.parallelTaskNameField.value = "";
+    el.parallelProjectField.value = "";
     el.parallelRatioInput.value = "1.0";
     renderSubTaskList();
   } else {
-    const name = ensureTaskNameExists(resolveTaskNameValue(el.newTaskNameSelect, el.newTaskNameInput));
+    const name = ensureTaskNameExists(resolveTaskNameValue(el.newTaskNameField));
     if (!name) {
       show("工数名を選択または入力してください", true);
       return;
     }
-    const project = ensureProjectExists(resolveProjectValue(el.newProjectSelect, el.newProjectInput));
+    const project = ensureProjectExists(resolveProjectValue(el.newProjectField));
     state.tasks.push({
       id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
       name,
@@ -987,10 +966,8 @@ function addTask() {
   }
 
   el.newNote.value = "";
-  el.newTaskNameSelect.value = "";
-  el.newTaskNameInput.value = "";
-  el.newProjectSelect.value = "";
-  el.newProjectInput.value = "";
+  el.newTaskNameField.value = "";
+  el.newProjectField.value = "";
   renderSelects();
   renderMasterLists();
   renderTasks();
@@ -1051,8 +1028,7 @@ function quickAddProject() {
   renderSelects();
   renderMasterLists();
   scheduleSave();
-  el.newProjectSelect.value = name;
-  el.newProjectInput.value = name;
+  el.newProjectField.value = name;
   show(`案件「${name}」を追加しました`);
 }
 
@@ -1070,8 +1046,7 @@ function quickAddTaskName() {
   renderSelects();
   renderMasterLists();
   scheduleSave();
-  el.newTaskNameSelect.value = name;
-  el.newTaskNameInput.value = name;
+  el.newTaskNameField.value = name;
   show(`工数名「${name}」を追加しました`);
 }
 
@@ -1108,18 +1083,6 @@ el.newPlanned.addEventListener("input", () => {
   if (el.parallelToggle.checked && pendingSubTasks.length > 0) {
     renderSubTaskList();
   }
-});
-el.newProjectSelect.addEventListener("change", () => {
-  if (!el.newProjectInput.value.trim()) el.newProjectInput.value = el.newProjectSelect.value;
-});
-el.newTaskNameSelect.addEventListener("change", () => {
-  if (!el.newTaskNameInput.value.trim()) el.newTaskNameInput.value = el.newTaskNameSelect.value;
-});
-el.parallelProjectSelect.addEventListener("change", () => {
-  if (!el.parallelProjectInput.value.trim()) el.parallelProjectInput.value = el.parallelProjectSelect.value;
-});
-el.parallelTaskNameSelect.addEventListener("change", () => {
-  if (!el.parallelTaskNameInput.value.trim()) el.parallelTaskNameInput.value = el.parallelTaskNameSelect.value;
 });
 
 el.parallelToggle.addEventListener("change", () => {

@@ -47,11 +47,7 @@
           <div id="normalFields" class="stack">
             <label>
               案件名
-              <select id="newProjectSelect"><option value="">(選択)</option></select>
-            </label>
-            <label>
-              案件名（自由入力）
-              <input id="newProjectInput" placeholder="未登録なら自動追加" />
+              <input id="newProjectField" list="projectOptions" placeholder="入力 or 候補選択（未登録は自動追加）" />
             </label>
             <div class="quick-add">
               <input id="quickAddProject" placeholder="案件名を新規追加" />
@@ -59,11 +55,7 @@
             </div>
             <label>
               工数名
-              <select id="newTaskNameSelect"><option value="">(選択)</option></select>
-            </label>
-            <label>
-              工数名（自由入力）
-              <input id="newTaskNameInput" placeholder="未登録なら自動追加" />
+              <input id="newTaskNameField" list="taskNameOptions" placeholder="入力 or 候補選択（未登録は自動追加）" />
             </label>
             <div class="quick-add">
               <input id="quickAddTaskName" placeholder="工数名を新規追加" />
@@ -80,11 +72,11 @@
               <div class="row sub-builder-row">
                 <label class="grow">
                   案件名
-                  <select id="parallelProjectSelect"><option value="">(選択)</option></select>
+                  <input id="parallelProjectField" list="projectOptions" placeholder="入力 or 候補選択" />
                 </label>
                 <label class="grow">
                   工数名
-                  <select id="parallelTaskNameSelect"><option value="">(選択)</option></select>
+                  <input id="parallelTaskNameField" list="taskNameOptions" placeholder="入力 or 候補選択" />
                 </label>
                 <label>
                   配分(割)
@@ -92,14 +84,6 @@
                 </label>
                 <button id="addSubTaskBtn" type="button">＋</button>
               </div>
-              <label>
-                案件名（自由入力）
-                <input id="parallelProjectInput" placeholder="未登録なら自動追加" />
-              </label>
-              <label>
-                工数名（自由入力）
-                <input id="parallelTaskNameInput" placeholder="未登録なら自動追加" />
-              </label>
               <div id="subTaskList" class="sub-task-list"></div>
             </div>
           </div>
@@ -167,6 +151,9 @@
           </div>
         </div>
       </section>
+
+      <datalist id="projectOptions"></datalist>
+      <datalist id="taskNameOptions"></datalist>
 
       <p id="message"></p>
     </main>
