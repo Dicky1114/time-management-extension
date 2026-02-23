@@ -49,6 +49,10 @@
               案件名
               <select id="newProjectSelect"><option value="">(選択)</option></select>
             </label>
+            <label>
+              案件名（自由入力）
+              <input id="newProjectInput" placeholder="未登録なら自動追加" />
+            </label>
             <div class="quick-add">
               <input id="quickAddProject" placeholder="案件名を新規追加" />
               <button type="button" data-action="quick-add-project">＋</button>
@@ -56,6 +60,10 @@
             <label>
               工数名
               <select id="newTaskNameSelect"><option value="">(選択)</option></select>
+            </label>
+            <label>
+              工数名（自由入力）
+              <input id="newTaskNameInput" placeholder="未登録なら自動追加" />
             </label>
             <div class="quick-add">
               <input id="quickAddTaskName" placeholder="工数名を新規追加" />
@@ -78,8 +86,20 @@
                   工数名
                   <select id="parallelTaskNameSelect"><option value="">(選択)</option></select>
                 </label>
+                <label>
+                  配分(割)
+                  <input id="parallelRatioInput" type="number" step="0.1" min="0" max="10" value="1.0" />
+                </label>
                 <button id="addSubTaskBtn" type="button">＋</button>
               </div>
+              <label>
+                案件名（自由入力）
+                <input id="parallelProjectInput" placeholder="未登録なら自動追加" />
+              </label>
+              <label>
+                工数名（自由入力）
+                <input id="parallelTaskNameInput" placeholder="未登録なら自動追加" />
+              </label>
               <div id="subTaskList" class="sub-task-list"></div>
             </div>
           </div>

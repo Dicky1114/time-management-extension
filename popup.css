@@ -380,13 +380,23 @@ button.danger:hover {
 
 .sub-task-item {
   display: flex;
-  justify-content: space-between;
+  gap: 8px;
   align-items: center;
   border: 1px solid var(--border);
   border-radius: var(--radius-xs);
   background: #fafbfc;
   padding: 4px 8px;
   font-size: 12px;
+}
+
+.sub-task-item > span:first-child {
+  flex: 1;
+}
+
+.sub-task-meta {
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 .sub-task-item button {
@@ -592,6 +602,12 @@ button.danger:hover {
   flex: 1;
   font-size: 11px;
   color: var(--text-secondary);
+}
+
+.ratio-plan {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 .ratio-input-wrap {

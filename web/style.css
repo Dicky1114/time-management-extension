@@ -1,0 +1,216 @@
+:root {
+  --bg: #f3f1ea;
+  --panel: #fffdf8;
+  --line: #d8d2c2;
+  --text: #1f2420;
+  --muted: #5e645f;
+  --accent: #2d7d63;
+  --accent-2: #bc6f38;
+  --danger: #7f2d2d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif;
+  background:
+    radial-gradient(circle at 5% 10%, #ece6d8 0, transparent 35%),
+    radial-gradient(circle at 95% 90%, #e7f0ea 0, transparent 38%),
+    var(--bg);
+}
+
+.layout {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+}
+
+.sidebar {
+  border-right: 1px solid var(--line);
+  padding: 18px;
+  background: linear-gradient(180deg, #f8f3e9 0%, #f6f8f1 100%);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
+}
+
+.subtitle,
+.subtext {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.content {
+  padding: 20px;
+}
+
+h1,
+h2 {
+  margin: 0 0 10px;
+}
+
+.side-panel,
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  margin-top: 12px;
+  box-shadow: 0 6px 18px rgb(35 36 32 / 5%);
+}
+
+.panel-head {
+  margin-bottom: 10px;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: end;
+}
+
+.row.wrap {
+  flex-wrap: wrap;
+}
+
+.row.between {
+  justify-content: space-between;
+  align-items: center;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.checkbox-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+input,
+select,
+button {
+  font-size: 14px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+
+input,
+select {
+  background: #fff;
+}
+
+button {
+  border: 0;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+button.sub {
+  background: #5f7369;
+}
+
+button.stop {
+  background: #7f6a2d;
+}
+
+button.done {
+  background: #26607a;
+}
+
+button.line-copy {
+  background: var(--accent-2);
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.project-list {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.project-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.project-item button {
+  padding: 4px 8px;
+  font-size: 11px;
+  background: var(--danger);
+}
+
+.table-wrap {
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 860px;
+}
+
+th,
+td {
+  border: 1px solid var(--line);
+  padding: 8px;
+  text-align: left;
+  vertical-align: top;
+  font-size: 13px;
+  background: #fff;
+}
+
+.ops {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+#message {
+  min-height: 1.5em;
+  font-weight: 700;
+}
+
+@media (max-width: 960px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .content {
+    padding: 14px;
+  }
+
+  table {
+    min-width: 760px;
+  }
+}

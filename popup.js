@@ -20,7 +20,9 @@ const el = {
   dateInput: document.getElementById("dateInput"),
   message: document.getElementById("message"),
   newProjectSelect: document.getElementById("newProjectSelect"),
+  newProjectInput: document.getElementById("newProjectInput"),
   newTaskNameSelect: document.getElementById("newTaskNameSelect"),
+  newTaskNameInput: document.getElementById("newTaskNameInput"),
   quickAddProject: document.getElementById("quickAddProject"),
   quickAddTaskName: document.getElementById("quickAddTaskName"),
   newPlanned: document.getElementById("newPlanned"),
@@ -40,7 +42,10 @@ const el = {
   parallelFields: document.getElementById("parallelFields"),
   parallelGroupName: document.getElementById("parallelGroupName"),
   parallelProjectSelect: document.getElementById("parallelProjectSelect"),
+  parallelProjectInput: document.getElementById("parallelProjectInput"),
   parallelTaskNameSelect: document.getElementById("parallelTaskNameSelect"),
+  parallelTaskNameInput: document.getElementById("parallelTaskNameInput"),
+  parallelRatioInput: document.getElementById("parallelRatioInput"),
   subTaskList: document.getElementById("subTaskList"),
 };
 
@@ -71,6 +76,12 @@ function toHourNumberText(hours) {
   const n = Math.max(0, Number(hours || 0));
   const rounded = Math.round(n * 100) / 100;
   return rounded.toFixed(2);
+}
+
+function normalizeWariRatio(value) {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(10, Math.round(n * 10) / 10));
 }
 
 function ceilHalf(hours) {
@@ -140,7 +151,7 @@ function normalizeSubTask(raw) {
   return {
     name,
     project: normalizeProjectName(raw.project),
-    ratio: Math.max(0, Number(raw.ratio || 0)),
+    ratio: normalizeWariRatio(raw.ratio),
   };
 }
 
@@ -168,6 +179,46 @@ function normalizeTask(raw) {
 function normalizeTasks(tasks) {
   if (!Array.isArray(tasks)) return [];
   return tasks.map(normalizeTask).filter(Boolean);
+}
+
+function ensureProjectExists(name) {
+  const normalized = normalizeProjectName(name);
+  if (!normalized) return "";
+  if (!state.projects.includes(normalized)) {
+    state.projects.push(normalized);
+    state.projects = normalizeProjects(state.projects);
+  }
+  return normalized;
+}
+
+function normalizeTaskName(name) {
+  return String(name || "").trim().slice(0, 200);
+}
+
+function ensureTaskNameExists(name) {
+  const normalized = normalizeTaskName(name);
+  if (!normalized) return "";
+  if (!state.taskNames.includes(normalized)) {
+    state.taskNames.push(normalized);
+    state.taskNames = normalizeTaskNames(state.taskNames);
+  }
+  return normalized;
+}
+
+function resolveProjectValue(selectEl, inputEl) {
+  const typed = normalizeProjectName(inputEl?.value || "");
+  if (typed) return typed;
+  return normalizeProjectName(selectEl?.value || "");
+}
+
+function resolveTaskNameValue(selectEl, inputEl) {
+  const typed = normalizeTaskName(inputEl?.value || "");
+  if (typed) return typed;
+  return normalizeTaskName(selectEl?.value || "");
+}
+
+function formatWariTotal(total) {
+  return `合計: ${Math.round(total * 10) / 10}/10割`;
 }
 
 /* ── Chrome Storage ────────────── */
@@ -355,12 +406,17 @@ function renderMasterLists() {
 
 function renderSubTaskList() {
   const frag = document.createDocumentFragment();
+  const totalPlannedHours = Math.max(0, Number(el.newPlanned.value || 0));
+  const totalRatio = pendingSubTasks.reduce((sum, st) => sum + normalizeWariRatio(st.ratio), 0);
   pendingSubTasks.forEach((st, i) => {
     const div = document.createElement("div");
     div.className = "sub-task-item";
     const label = [st.name, st.project].filter(Boolean).join(" / ");
+    const ratio = normalizeWariRatio(st.ratio);
+    const plannedHours = totalRatio > 0 ? totalPlannedHours * (ratio / totalRatio) : 0;
     div.innerHTML = `
       <span>${escapeHtml(label)}</span>
+      <span class="sub-task-meta">${toHourNumberText(plannedHours)}h / ${ratio}割</span>
       <button data-action="remove-subtask" data-index="${i}" class="btn-danger" type="button">&times;</button>
     `;
     frag.appendChild(div);
@@ -480,18 +536,21 @@ function renderTasks() {
       ratioSection = '<div class="sub-task-ratios">';
       task.subTasks.forEach((st, i) => {
         const label = [st.name, st.project].filter(Boolean).join(" / ");
+        const share = totalRatio > 0 ? Number(st.ratio || 0) / totalRatio : 0;
+        const allocatedPlannedHours = (Number(task.plannedMinutes || 0) / 60) * share;
         ratioSection += `
           <div class="ratio-row">
             <span class="ratio-label">${escapeHtml(label)}</span>
+            <span class="ratio-plan">${toHourNumberText(ceilHalf(allocatedPlannedHours))}h</span>
             <div class="ratio-input-wrap">
-              <input type="number" step="1" min="0" max="100" value="${st.ratio}"
+              <input type="number" step="0.1" min="0" max="10" value="${st.ratio}"
                      data-action="update-ratio" data-id="${task.id}" data-index="${i}" class="ratio-input" />
-              <span class="ratio-suffix">%</span>
+              <span class="ratio-suffix">割</span>
             </div>
           </div>
         `;
       });
-      ratioSection += `<div class="ratio-total" data-ratio-total="${task.id}">合計: ${Math.round(totalRatio * 10) / 10}%</div>`;
+      ratioSection += `<div class="ratio-total" data-ratio-total="${task.id}">${formatWariTotal(totalRatio)}</div>`;
       ratioSection += "</div>";
     }
 
@@ -561,7 +620,7 @@ function completeTask(id) {
   task.status = "completed";
   task.completedAt = nowMs();
   if (task.parallel && task.subTasks.length > 0) {
-    const equal = Math.round((100 / task.subTasks.length) * 10) / 10;
+    const equal = Math.round((10 / task.subTasks.length) * 10) / 10;
     task.subTasks.forEach((st) => {
       if (st.ratio <= 0) st.ratio = equal;
     });
@@ -766,14 +825,10 @@ function addMasterProject() {
     show("担当者を入力してください", true);
     return;
   }
-  const name = normalizeProjectName(el.masterProjectInput.value);
+  const name = ensureProjectExists(el.masterProjectInput.value);
   if (!name) {
     show("案件名を入力してください", true);
     return;
-  }
-  if (!state.projects.includes(name)) {
-    state.projects.push(name);
-    state.projects = normalizeProjects(state.projects);
   }
   el.masterProjectInput.value = "";
   renderSelects();
@@ -797,14 +852,10 @@ function addMasterTaskName() {
     show("担当者を入力してください", true);
     return;
   }
-  const name = String(el.masterTaskNameInput.value || "").trim().slice(0, 200);
+  const name = ensureTaskNameExists(el.masterTaskNameInput.value);
   if (!name) {
     show("工数名を入力してください", true);
     return;
-  }
-  if (!state.taskNames.includes(name)) {
-    state.taskNames.push(name);
-    state.taskNames = normalizeTaskNames(state.taskNames);
   }
   el.masterTaskNameInput.value = "";
   renderSelects();
@@ -824,15 +875,26 @@ function removeMasterTaskName(name) {
 /* ── Sub-task (parallel builder) ── */
 
 function addSubTask() {
-  const name = el.parallelTaskNameSelect.value;
+  const name = ensureTaskNameExists(resolveTaskNameValue(el.parallelTaskNameSelect, el.parallelTaskNameInput));
   if (!name) {
-    show("工数名を選択してください", true);
+    show("工数名を選択または入力してください", true);
     return;
   }
-  const project = el.parallelProjectSelect.value;
-  pendingSubTasks.push({ name, project });
+  const project = ensureProjectExists(resolveProjectValue(el.parallelProjectSelect, el.parallelProjectInput));
+  const ratio = normalizeWariRatio(el.parallelRatioInput.value);
+  const currentTotal = pendingSubTasks.reduce((sum, st) => sum + normalizeWariRatio(st.ratio), 0);
+  if (currentTotal + ratio > 10) {
+    show("並列の配分(割)は合計10割までです", true);
+    return;
+  }
+  pendingSubTasks.push({ name, project, ratio });
   el.parallelTaskNameSelect.value = "";
+  el.parallelTaskNameInput.value = "";
   el.parallelProjectSelect.value = "";
+  el.parallelProjectInput.value = "";
+  el.parallelRatioInput.value = "1.0";
+  renderSelects();
+  renderMasterLists();
   renderSubTaskList();
 }
 
@@ -867,11 +929,19 @@ function addTask() {
       show("サブタスクを2つ以上追加してください", true);
       return;
     }
-    const equalRatio = Math.round((100 / pendingSubTasks.length) * 10) / 10;
+    const totalRatio = pendingSubTasks.reduce((sum, st) => sum + normalizeWariRatio(st.ratio), 0);
+    if (totalRatio <= 0) {
+      show("並列の配分(割)を入力してください", true);
+      return;
+    }
+    if (totalRatio > 10) {
+      show("並列の配分(割)は合計10割までです", true);
+      return;
+    }
     const subTasks = pendingSubTasks.map((st) => ({
       name: st.name,
       project: st.project,
-      ratio: equalRatio,
+      ratio: normalizeWariRatio(st.ratio),
     }));
     state.tasks.push({
       id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
@@ -889,15 +959,18 @@ function addTask() {
     pendingSubTasks = [];
     el.parallelGroupName.value = "";
     el.parallelTaskNameSelect.value = "";
+    el.parallelTaskNameInput.value = "";
     el.parallelProjectSelect.value = "";
+    el.parallelProjectInput.value = "";
+    el.parallelRatioInput.value = "1.0";
     renderSubTaskList();
   } else {
-    const name = el.newTaskNameSelect.value;
+    const name = ensureTaskNameExists(resolveTaskNameValue(el.newTaskNameSelect, el.newTaskNameInput));
     if (!name) {
-      show("工数名を選択してください", true);
+      show("工数名を選択または入力してください", true);
       return;
     }
-    const project = el.newProjectSelect.value;
+    const project = ensureProjectExists(resolveProjectValue(el.newProjectSelect, el.newProjectInput));
     state.tasks.push({
       id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
       name,
@@ -915,7 +988,9 @@ function addTask() {
 
   el.newNote.value = "";
   el.newTaskNameSelect.value = "";
+  el.newTaskNameInput.value = "";
   el.newProjectSelect.value = "";
+  el.newProjectInput.value = "";
   renderSelects();
   renderMasterLists();
   renderTasks();
@@ -967,20 +1042,17 @@ function quickAddProject() {
     show("担当者を入力してください", true);
     return;
   }
-  const name = normalizeProjectName(el.quickAddProject.value);
+  const name = ensureProjectExists(el.quickAddProject.value);
   if (!name) {
     show("案件名を入力してください", true);
     return;
-  }
-  if (!state.projects.includes(name)) {
-    state.projects.push(name);
-    state.projects = normalizeProjects(state.projects);
   }
   el.quickAddProject.value = "";
   renderSelects();
   renderMasterLists();
   scheduleSave();
   el.newProjectSelect.value = name;
+  el.newProjectInput.value = name;
   show(`案件「${name}」を追加しました`);
 }
 
@@ -989,20 +1061,17 @@ function quickAddTaskName() {
     show("担当者を入力してください", true);
     return;
   }
-  const name = String(el.quickAddTaskName.value || "").trim().slice(0, 200);
+  const name = ensureTaskNameExists(el.quickAddTaskName.value);
   if (!name) {
     show("工数名を入力してください", true);
     return;
-  }
-  if (!state.taskNames.includes(name)) {
-    state.taskNames.push(name);
-    state.taskNames = normalizeTaskNames(state.taskNames);
   }
   el.quickAddTaskName.value = "";
   renderSelects();
   renderMasterLists();
   scheduleSave();
   el.newTaskNameSelect.value = name;
+  el.newTaskNameInput.value = name;
   show(`工数名「${name}」を追加しました`);
 }
 
@@ -1034,6 +1103,23 @@ el.quickAddProject.addEventListener("keydown", (ev) => {
 });
 el.quickAddTaskName.addEventListener("keydown", (ev) => {
   if (ev.key === "Enter") quickAddTaskName();
+});
+el.newPlanned.addEventListener("input", () => {
+  if (el.parallelToggle.checked && pendingSubTasks.length > 0) {
+    renderSubTaskList();
+  }
+});
+el.newProjectSelect.addEventListener("change", () => {
+  if (!el.newProjectInput.value.trim()) el.newProjectInput.value = el.newProjectSelect.value;
+});
+el.newTaskNameSelect.addEventListener("change", () => {
+  if (!el.newTaskNameInput.value.trim()) el.newTaskNameInput.value = el.newTaskNameSelect.value;
+});
+el.parallelProjectSelect.addEventListener("change", () => {
+  if (!el.parallelProjectInput.value.trim()) el.parallelProjectInput.value = el.parallelProjectSelect.value;
+});
+el.parallelTaskNameSelect.addEventListener("change", () => {
+  if (!el.parallelTaskNameInput.value.trim()) el.parallelTaskNameInput.value = el.parallelTaskNameSelect.value;
 });
 
 el.parallelToggle.addEventListener("change", () => {
@@ -1069,11 +1155,17 @@ document.addEventListener("input", (ev) => {
   if (!task || !task.parallel) return;
   const index = Number(input.dataset.index);
   if (index >= 0 && index < task.subTasks.length) {
-    task.subTasks[index].ratio = Math.max(0, Number(input.value || 0));
+    const othersTotal = task.subTasks.reduce((sum, st, i) => (
+      i === index ? sum : sum + Number(st.ratio || 0)
+    ), 0);
+    const maxAllowed = Math.max(0, 10 - othersTotal);
+    const ratio = Math.min(normalizeWariRatio(input.value), Math.round(maxAllowed * 10) / 10);
+    task.subTasks[index].ratio = ratio;
+    input.value = String(ratio);
     const totalEl = document.querySelector(`[data-ratio-total="${CSS.escape(task.id)}"]`);
     if (totalEl) {
       const total = task.subTasks.reduce((s, st) => s + Number(st.ratio || 0), 0);
-      totalEl.textContent = `合計: ${Math.round(total * 10) / 10}%`;
+      totalEl.textContent = formatWariTotal(total);
     }
     scheduleSave();
   }
