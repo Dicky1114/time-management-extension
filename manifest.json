@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "工数管理タイマー",
+  "description": "1日単位の工数をユーザー別に管理する軽量タイマー",
+  "version": "1.1.0",
+  "permissions": ["storage", "clipboardWrite"],
+  "options_ui": {
+    "page": "web/index.html",
+    "open_in_tab": true
+  },
+  "action": {
+    "default_title": "工数管理",
+    "default_popup": "popup.html"
+  }
+}

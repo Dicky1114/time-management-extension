@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>工数管理</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup-app">
+      <header class="topbar">
+        <h1>工数管理</h1>
+        <p id="loginState" class="subtext">未ログイン</p>
+      </header>
+
+      <section class="card">
+        <div class="row">
+          <label class="grow">
+            担当者
+            <input id="loginUserInput" placeholder="例: 田中" list="userList" />
+          </label>
+        </div>
+        <div class="row">
+          <label>
+            日付
+            <input id="dateInput" type="date" />
+          </label>
+        </div>
+        <datalist id="userList"></datalist>
+      </section>
+
+      <nav class="tabs" id="tabs">
+        <button class="tab active" data-tab="new" type="button">新規</button>
+        <button class="tab" data-tab="active" type="button">作業中</button>
+        <button class="tab" data-tab="done" type="button">完了</button>
+        <button class="tab" data-tab="master" type="button">マスタ</button>
+      </nav>
+
+      <section class="card tab-panel" data-panel="new">
+        <h2>新規工数の設定</h2>
+        <div class="stack">
+          <label class="check">
+            <input id="parallelToggle" type="checkbox" />
+            並列モード
+          </label>
+
+          <div id="normalFields" class="stack">
+            <label>
+              案件名
+              <select id="newProjectSelect"><option value="">(選択)</option></select>
+            </label>
+            <div class="quick-add">
+              <input id="quickAddProject" placeholder="案件名を新規追加" />
+              <button type="button" data-action="quick-add-project">＋</button>
+            </div>
+            <label>
+              工数名
+              <select id="newTaskNameSelect"><option value="">(選択)</option></select>
+            </label>
+            <div class="quick-add">
+              <input id="quickAddTaskName" placeholder="工数名を新規追加" />
+              <button type="button" data-action="quick-add-taskname">＋</button>
+            </div>
+          </div>
+
+          <div id="parallelFields" class="hidden">
+            <div class="stack">
+              <label>
+                グループ名
+                <input id="parallelGroupName" placeholder="例: 定例MTG" />
+              </label>
+              <div class="row sub-builder-row">
+                <label class="grow">
+                  案件名
+                  <select id="parallelProjectSelect"><option value="">(選択)</option></select>
+                </label>
+                <label class="grow">
+                  工数名
+                  <select id="parallelTaskNameSelect"><option value="">(選択)</option></select>
+                </label>
+                <button id="addSubTaskBtn" type="button">＋</button>
+              </div>
+              <div id="subTaskList" class="sub-task-list"></div>
+            </div>
+          </div>
+
+          <label>
+            予定時間
+            <div class="time-input-wrap">
+              <input id="newPlanned" type="number" step="0.5" min="0" value="1.0" />
+              <span class="time-suffix">時間</span>
+            </div>
+          </label>
+          <label>
+            備考
+            <input id="newNote" placeholder="メモ" />
+          </label>
+          <button id="addBtn" type="button">追加</button>
+        </div>
+      </section>
+
+      <section class="card tab-panel hidden" data-panel="active">
+        <h2>作業中 / 未完了</h2>
+        <p id="activeSummary" class="subtext"></p>
+        <div class="list" id="activeList"></div>
+      </section>
+
+      <section class="card tab-panel hidden" data-panel="done">
+        <div class="row between">
+          <h2>完了</h2>
+          <div class="row">
+            <button id="copyAllHtmlBtn" type="button">全件コピー</button>
+            <button id="clearDoneBtn" class="danger" type="button">全削除</button>
+          </div>
+        </div>
+        <div class="copy-columns">
+          <span class="copy-label">列別コピー</span>
+          <button data-action="copy-col" data-col="name" type="button">A:項目</button>
+          <button data-action="copy-col" data-col="planned" type="button">C:想定</button>
+          <button data-action="copy-col" data-col="actual" type="button">D:実際</button>
+          <button data-action="copy-col" data-col="user" type="button">E:担当者</button>
+          <button data-action="copy-col" data-col="note" type="button">H:備考</button>
+        </div>
+        <div class="list" id="doneList"></div>
+      </section>
+
+      <section class="card tab-panel hidden" data-panel="master">
+        <h2>マスタ管理</h2>
+        <div class="master-group">
+          <h3>案件名</h3>
+          <div class="row">
+            <input id="masterProjectInput" class="grow" placeholder="案件名を入力" />
+            <button id="addMasterProjectBtn" type="button">追加</button>
+          </div>
+          <div class="master-list-wrap">
+            <ul id="masterProjectList" class="master-list"></ul>
+          </div>
+        </div>
+        <div class="master-group">
+          <h3>工数名</h3>
+          <div class="row">
+            <input id="masterTaskNameInput" class="grow" placeholder="工数名を入力" />
+            <button id="addMasterTaskNameBtn" type="button">追加</button>
+          </div>
+          <div class="master-list-wrap">
+            <ul id="masterTaskNameList" class="master-list"></ul>
+          </div>
+        </div>
+      </section>
+
+      <p id="message"></p>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
