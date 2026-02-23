@@ -396,7 +396,6 @@ function bindComboOpen(buttonEl, menuEl, inputEl) {
     }
     inputEl.focus();
   };
-  buttonEl.addEventListener("pointerdown", onOpen);
   buttonEl.addEventListener("click", onOpen);
 }
 
