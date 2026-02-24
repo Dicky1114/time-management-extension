@@ -49,7 +49,7 @@ const el = {
   parallelTaskNameOpenBtn: document.getElementById("parallelTaskNameOpenBtn"),
   parallelProjectMenu: document.getElementById("parallelProjectMenu"),
   parallelTaskNameMenu: document.getElementById("parallelTaskNameMenu"),
-  parallelRatioInput: document.getElementById("parallelRatioInput"),
+  parallelPlannedInput: document.getElementById("parallelPlannedInput"),
   subTaskList: document.getElementById("subTaskList"),
 };
 
@@ -86,6 +86,13 @@ function normalizeWariRatio(value) {
   const n = Number(value || 0);
   if (!Number.isFinite(n)) return 0;
   return Math.max(0, Math.min(10, Math.round(n * 10) / 10));
+}
+
+function normalizeHalfHours(value, min = 0) {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return min;
+  const rounded = Math.round(n * 2) / 2;
+  return Math.max(min, rounded);
 }
 
 function ceilHalf(hours) {
@@ -152,10 +159,12 @@ function normalizeSubTask(raw) {
   if (!raw || typeof raw !== "object") return null;
   const name = String(raw.name || "").trim().slice(0, 200);
   if (!name) return null;
+  const plannedHours = normalizeHalfHours(raw.plannedHours, 0);
   return {
     name,
     project: normalizeProjectName(raw.project),
     ratio: normalizeWariRatio(raw.ratio),
+    plannedHours,
   };
 }
 
@@ -217,8 +226,26 @@ function resolveTaskNameValue(inputEl) {
   return normalizeTaskName(inputEl?.value || "");
 }
 
-function formatWariTotal(total) {
-  return `合計: ${Math.round(total * 10) / 10}/10割`;
+function getSubTaskPlannedHours(st) {
+  const plannedHours = normalizeHalfHours(st?.plannedHours, 0);
+  if (plannedHours > 0) return plannedHours;
+  return 0;
+}
+
+function getSubTaskWeight(st) {
+  const plannedHours = getSubTaskPlannedHours(st);
+  if (plannedHours > 0) return plannedHours;
+  return normalizeWariRatio(st?.ratio);
+}
+
+function getPendingParallelTotalHours() {
+  return pendingSubTasks.reduce((sum, st) => sum + getSubTaskPlannedHours(st), 0);
+}
+
+function syncParallelTotalPlanned() {
+  if (!el.parallelToggle.checked) return;
+  const totalHours = getPendingParallelTotalHours();
+  el.newPlanned.value = totalHours > 0 ? toHourNumberText(totalHours) : "0.0";
 }
 
 /* ── Chrome Storage ────────────── */
@@ -400,11 +427,13 @@ function bindComboOpen(buttonEl, menuEl, inputEl) {
 }
 
 function bindComboInputFocus(inputEl, menuEl) {
-  inputEl.addEventListener("focus", () => {
+  const openMenu = () => {
     if (menuEl.childElementCount === 0) return;
     closeAllComboMenus();
     menuEl.classList.remove("hidden");
-  });
+  };
+  inputEl.addEventListener("focus", openMenu);
+  inputEl.addEventListener("click", openMenu);
 }
 
 /* ── Render: Master Lists ──────── */
@@ -451,22 +480,31 @@ function renderMasterLists() {
 
 function renderSubTaskList() {
   const frag = document.createDocumentFragment();
-  const totalPlannedHours = Math.max(0, Number(el.newPlanned.value || 0));
-  const totalRatio = pendingSubTasks.reduce((sum, st) => sum + normalizeWariRatio(st.ratio), 0);
+  const totalPlannedHours = getPendingParallelTotalHours();
   pendingSubTasks.forEach((st, i) => {
     const div = document.createElement("div");
     div.className = "sub-task-item";
     const label = [st.name, st.project].filter(Boolean).join(" / ");
-    const ratio = normalizeWariRatio(st.ratio);
-    const plannedHours = totalRatio > 0 ? totalPlannedHours * (ratio / totalRatio) : 0;
+    const plannedHours = getSubTaskPlannedHours(st);
     div.innerHTML = `
       <span>${escapeHtml(label)}</span>
-      <span class="sub-task-meta">${toHourNumberText(plannedHours)}h / ${ratio}割</span>
+      <span class="sub-task-meta">${toHourNumberText(plannedHours)}h</span>
       <button data-action="remove-subtask" data-index="${i}" class="btn-danger" type="button">&times;</button>
     `;
     frag.appendChild(div);
   });
+  if (pendingSubTasks.length > 0) {
+    const total = document.createElement("div");
+    total.className = "sub-task-item";
+    total.innerHTML = `
+      <span>合計</span>
+      <span class="sub-task-meta">${toHourNumberText(totalPlannedHours)}h</span>
+      <span></span>
+    `;
+    frag.appendChild(total);
+  }
   el.subTaskList.replaceChildren(frag);
+  syncParallelTotalPlanned();
 }
 
 /* ── Render: Tasks ─────────────── */
@@ -577,25 +615,23 @@ function renderTasks() {
 
     let ratioSection = "";
     if (task.parallel && task.subTasks.length > 0) {
-      const totalRatio = task.subTasks.reduce((s, st) => s + Number(st.ratio || 0), 0);
+      const totalWeight = task.subTasks.reduce((s, st) => s + getSubTaskWeight(st), 0);
+      const totalPlannedHours = Number(task.plannedMinutes || 0) / 60;
       ratioSection = '<div class="sub-task-ratios">';
-      task.subTasks.forEach((st, i) => {
+      task.subTasks.forEach((st) => {
         const label = [st.name, st.project].filter(Boolean).join(" / ");
-        const share = totalRatio > 0 ? Number(st.ratio || 0) / totalRatio : 0;
-        const allocatedPlannedHours = (Number(task.plannedMinutes || 0) / 60) * share;
+        const plannedHours = getSubTaskPlannedHours(st);
+        const share = totalWeight > 0 ? getSubTaskWeight(st) / totalWeight : 0;
+        const allocatedPlannedHours = plannedHours > 0 ? plannedHours : totalPlannedHours * share;
         ratioSection += `
           <div class="ratio-row">
             <span class="ratio-label">${escapeHtml(label)}</span>
             <span class="ratio-plan">${toHourNumberText(ceilHalf(allocatedPlannedHours))}h</span>
-            <div class="ratio-input-wrap">
-              <input type="number" step="0.1" min="0" max="10" value="${st.ratio}"
-                     data-action="update-ratio" data-id="${task.id}" data-index="${i}" class="ratio-input" />
-              <span class="ratio-suffix">割</span>
-            </div>
+            <span class="ratio-suffix">固定</span>
           </div>
         `;
       });
-      ratioSection += `<div class="ratio-total" data-ratio-total="${task.id}">${formatWariTotal(totalRatio)}</div>`;
+      ratioSection += `<div class="ratio-total">合計: ${toHourNumberText(totalPlannedHours)}h</div>`;
       ratioSection += "</div>";
     }
 
@@ -667,7 +703,7 @@ function completeTask(id) {
   if (task.parallel && task.subTasks.length > 0) {
     const equal = Math.round((10 / task.subTasks.length) * 10) / 10;
     task.subTasks.forEach((st) => {
-      if (st.ratio <= 0) st.ratio = equal;
+      if (getSubTaskWeight(st) <= 0) st.ratio = equal;
     });
   }
   renderTasks();
@@ -680,12 +716,14 @@ function rowToTSV(task) {
   const actualSec = elapsedSeconds(task);
 
   if (task.parallel && task.subTasks.length > 0) {
-    const totalRatio = task.subTasks.reduce((s, st) => s + Number(st.ratio || 0), 0);
+    const totalWeight = task.subTasks.reduce((s, st) => s + getSubTaskWeight(st), 0);
+    const totalPlannedHours = Number(task.plannedMinutes || 0) / 60;
     return task.subTasks
       .map((st) => {
-        const ratio = totalRatio > 0 ? Number(st.ratio || 0) / totalRatio : 0;
-        const subActualHours = (actualSec / 3600) * ratio;
-        const subPlannedHours = (Number(task.plannedMinutes || 0) / 60) * ratio;
+        const plannedHours = getSubTaskPlannedHours(st);
+        const share = totalWeight > 0 ? getSubTaskWeight(st) / totalWeight : 0;
+        const subActualHours = (actualSec / 3600) * share;
+        const subPlannedHours = plannedHours > 0 ? plannedHours : totalPlannedHours * share;
         const planned = subPlannedHours > 0 ? toHourNumberText(ceilHalf(subPlannedHours))  : "";
         const actual = subActualHours > 0 ? toHourNumberText(ceilHalf(subActualHours))  : "";
         const taskLabel = [st.name, st.project].filter(Boolean).join(" ");
@@ -739,11 +777,13 @@ function expandDoneTasks(tasks) {
   tasks.forEach((task) => {
     const actualSec = elapsedSeconds(task);
     if (task.parallel && task.subTasks.length > 0) {
-      const totalRatio = task.subTasks.reduce((s, st) => s + Number(st.ratio || 0), 0);
+      const totalWeight = task.subTasks.reduce((s, st) => s + getSubTaskWeight(st), 0);
+      const totalPlannedHours = Number(task.plannedMinutes || 0) / 60;
       task.subTasks.forEach((st) => {
-        const ratio = totalRatio > 0 ? Number(st.ratio || 0) / totalRatio : 0;
-        const subPlannedHours = (Number(task.plannedMinutes || 0) / 60) * ratio;
-        const subActualHours = (actualSec / 3600) * ratio;
+        const plannedHours = getSubTaskPlannedHours(st);
+        const share = totalWeight > 0 ? getSubTaskWeight(st) / totalWeight : 0;
+        const subPlannedHours = plannedHours > 0 ? plannedHours : totalPlannedHours * share;
+        const subActualHours = (actualSec / 3600) * share;
         rows.push({
           name: [st.name, st.project].filter(Boolean).join(" "),
           planned: subPlannedHours > 0 ? toHourNumberText(ceilHalf(subPlannedHours))  : "",
@@ -926,16 +966,15 @@ function addSubTask() {
     return;
   }
   const project = ensureProjectExists(resolveProjectValue(el.parallelProjectField));
-  const ratio = normalizeWariRatio(el.parallelRatioInput.value);
-  const currentTotal = pendingSubTasks.reduce((sum, st) => sum + normalizeWariRatio(st.ratio), 0);
-  if (currentTotal + ratio > 10) {
-    show("並列の配分(割)は合計10割までです", true);
+  const plannedHours = normalizeHalfHours(el.parallelPlannedInput.value, 0.5);
+  if (plannedHours <= 0) {
+    show("予測時間(h)は0.5以上で入力してください", true);
     return;
   }
-  pendingSubTasks.push({ name, project, ratio });
+  pendingSubTasks.push({ name, project, plannedHours });
   el.parallelTaskNameField.value = "";
   el.parallelProjectField.value = "";
-  el.parallelRatioInput.value = "1.0";
+  el.parallelPlannedInput.value = "0.5";
   renderSelects();
   renderMasterLists();
   renderSubTaskList();
@@ -959,7 +998,7 @@ function addTask() {
   }
 
   const isParallel = el.parallelToggle.checked;
-  const plannedHours = Number(el.newPlanned.value || 0);
+  const plannedHours = normalizeHalfHours(el.newPlanned.value, 0);
   const plannedMinutes = Math.max(0, Math.round(plannedHours * 60));
 
   if (isParallel) {
@@ -972,25 +1011,27 @@ function addTask() {
       show("サブタスクを2つ以上追加してください", true);
       return;
     }
-    const totalRatio = pendingSubTasks.reduce((sum, st) => sum + normalizeWariRatio(st.ratio), 0);
-    if (totalRatio <= 0) {
-      show("並列の配分(割)を入力してください", true);
-      return;
-    }
-    if (totalRatio > 10) {
-      show("並列の配分(割)は合計10割までです", true);
+    const totalPlannedHours = getPendingParallelTotalHours();
+    if (totalPlannedHours <= 0) {
+      show("並列サブタスクの予測時間を入力してください", true);
       return;
     }
     const subTasks = pendingSubTasks.map((st) => ({
       name: st.name,
       project: st.project,
-      ratio: normalizeWariRatio(st.ratio),
+      plannedHours: getSubTaskPlannedHours(st),
+      ratio: 0,
     }));
+    const totalWeight = subTasks.reduce((sum, st) => sum + getSubTaskPlannedHours(st), 0);
+    subTasks.forEach((st) => {
+      const ratio = totalWeight > 0 ? (getSubTaskPlannedHours(st) / totalWeight) * 10 : 0;
+      st.ratio = normalizeWariRatio(ratio);
+    });
     state.tasks.push({
       id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
       name: groupName,
       project: "",
-      plannedMinutes,
+      plannedMinutes: Math.max(0, Math.round(totalPlannedHours * 60)),
       actualSeconds: 0,
       note: el.newNote.value.trim(),
       status: "pending",
@@ -1003,7 +1044,7 @@ function addTask() {
     el.parallelGroupName.value = "";
     el.parallelTaskNameField.value = "";
     el.parallelProjectField.value = "";
-    el.parallelRatioInput.value = "1.0";
+    el.parallelPlannedInput.value = "0.5";
     renderSubTaskList();
   } else {
     const name = ensureTaskNameExists(resolveTaskNameValue(el.newTaskNameField));
@@ -1034,6 +1075,7 @@ function addTask() {
   renderMasterLists();
   renderTasks();
   scheduleSave();
+  syncParallelTotalPlanned();
   setTab("active");
 }
 
@@ -1106,15 +1148,27 @@ el.masterTaskNameInput.addEventListener("keydown", (ev) => {
   if (ev.key === "Enter") addMasterTaskName();
 });
 el.newPlanned.addEventListener("input", () => {
-  if (el.parallelToggle.checked && pendingSubTasks.length > 0) {
-    renderSubTaskList();
-  }
+  if (el.parallelToggle.checked) return;
+  el.newPlanned.value = String(normalizeHalfHours(el.newPlanned.value, 0));
+});
+el.newPlanned.addEventListener("blur", () => {
+  el.newPlanned.value = String(normalizeHalfHours(el.newPlanned.value, 0));
+});
+el.parallelPlannedInput.addEventListener("input", () => {
+  el.parallelPlannedInput.value = String(normalizeHalfHours(el.parallelPlannedInput.value, 0.5));
 });
 
 el.parallelToggle.addEventListener("change", () => {
   const isParallel = el.parallelToggle.checked;
   el.normalFields.classList.toggle("hidden", isParallel);
   el.parallelFields.classList.toggle("hidden", !isParallel);
+  el.newPlanned.readOnly = isParallel;
+  el.newPlanned.disabled = isParallel;
+  if (isParallel) {
+    syncParallelTotalPlanned();
+  } else if (Number(el.newPlanned.value || 0) <= 0) {
+    el.newPlanned.value = "0.5";
+  }
 });
 
 document.addEventListener("click", (ev) => {
@@ -1149,29 +1203,6 @@ document.addEventListener("click", (ev) => {
   if (action === "remove-master-project") removeMasterProject(btn.dataset.project);
   if (action === "remove-master-taskname") removeMasterTaskName(btn.dataset.taskname);
   if (action === "remove-subtask") removeSubTask(Number(btn.dataset.index));
-});
-
-document.addEventListener("input", (ev) => {
-  const input = ev.target;
-  if (input.dataset.action !== "update-ratio") return;
-  const task = findTask(input.dataset.id);
-  if (!task || !task.parallel) return;
-  const index = Number(input.dataset.index);
-  if (index >= 0 && index < task.subTasks.length) {
-    const othersTotal = task.subTasks.reduce((sum, st, i) => (
-      i === index ? sum : sum + Number(st.ratio || 0)
-    ), 0);
-    const maxAllowed = Math.max(0, 10 - othersTotal);
-    const ratio = Math.min(normalizeWariRatio(input.value), Math.round(maxAllowed * 10) / 10);
-    task.subTasks[index].ratio = ratio;
-    input.value = String(ratio);
-    const totalEl = document.querySelector(`[data-ratio-total="${CSS.escape(task.id)}"]`);
-    if (totalEl) {
-      const total = task.subTasks.reduce((s, st) => s + Number(st.ratio || 0), 0);
-      totalEl.textContent = formatWariTotal(total);
-    }
-    scheduleSave();
-  }
 });
 
 el.tabs.addEventListener("click", (ev) => {
