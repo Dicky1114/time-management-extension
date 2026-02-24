@@ -69,8 +69,8 @@
                 グループ名
                 <input id="parallelGroupName" placeholder="例: 定例MTG" />
               </label>
-              <div class="row sub-builder-row">
-                <label class="grow combo-field">
+              <div class="stack sub-builder-row">
+                <label class="combo-field">
                   案件名
                   <div class="combo-wrap">
                     <input id="parallelProjectField" placeholder="入力 or 候補選択" />
@@ -78,7 +78,7 @@
                   </div>
                   <div id="parallelProjectMenu" class="combo-menu hidden"></div>
                 </label>
-                <label class="grow combo-field">
+                <label class="combo-field">
                   工数名
                   <div class="combo-wrap">
                     <input id="parallelTaskNameField" placeholder="入力 or 候補選択" />
@@ -90,7 +90,7 @@
                   予測(h)
                   <input id="parallelPlannedInput" type="number" step="0.5" min="0.5" value="0.5" />
                 </label>
-                <button id="addSubTaskBtn" type="button">＋</button>
+                <button id="addSubTaskBtn" class="sub-builder-add" type="button">＋</button>
               </div>
               <div id="subTaskList" class="sub-task-list"></div>
             </div>

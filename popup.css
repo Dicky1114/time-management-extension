@@ -428,13 +428,14 @@ button.danger:hover {
 /* ── Sub-task builder (parallel) ── */
 
 .sub-builder-row {
-  align-items: flex-end;
+  align-items: stretch;
 }
 
-.sub-builder-row > button {
+.sub-builder-add {
   padding: 8px 12px;
   font-size: 14px;
   line-height: 1;
+  align-self: flex-start;
 }
 
 .sub-task-list {
