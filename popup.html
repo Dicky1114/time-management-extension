@@ -126,12 +126,11 @@
           </div>
         </div>
         <div class="copy-columns">
-          <span class="copy-label">列別コピー</span>
-          <button data-action="copy-col" data-col="name" type="button">A:項目</button>
-          <button data-action="copy-col" data-col="planned" type="button">C:想定</button>
-          <button data-action="copy-col" data-col="actual" type="button">D:実際</button>
-          <button data-action="copy-col" data-col="user" type="button">E:担当者</button>
-          <button data-action="copy-col" data-col="note" type="button">H:備考</button>
+          <button data-action="copy-col" data-col="name" type="button">項目</button>
+          <button data-action="copy-col" data-col="planned" type="button">想定</button>
+          <button data-action="copy-col" data-col="actual" type="button">実際</button>
+          <button data-action="copy-col" data-col="user" type="button">担当者</button>
+          <button data-action="copy-col" data-col="note" type="button">備考</button>
         </div>
         <div class="list" id="doneList"></div>
       </section>
@@ -156,6 +155,27 @@
           </div>
           <div class="master-list-wrap">
             <ul id="masterTaskNameList" class="master-list"></ul>
+          </div>
+        </div>
+        <div class="master-group">
+          <h3>通知設定</h3>
+          <div class="stack">
+            <label class="check">
+              <input id="notifyBeforeEnabled" type="checkbox" />
+              予定終了の残り時間で通知
+            </label>
+            <label>
+              残り(分)
+              <input id="notifyBeforeMinutes" type="number" min="1" step="1" value="10" />
+            </label>
+            <label class="check">
+              <input id="notifyElapsedEnabled" type="checkbox" />
+              経過時間で通知
+            </label>
+            <label>
+              経過(分)
+              <input id="notifyElapsedMinutes" type="number" min="1" step="1" value="60" />
+            </label>
           </div>
         </div>
       </section>

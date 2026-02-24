@@ -1,5 +1,6 @@
 const STORAGE_PREFIX = "tm_user_";
 const PREF_LAST_USER_KEY = "tm_pref_last_user";
+const PREF_LAST_TAB_KEY = "tm_pref_last_tab";
 const SAVE_DEBOUNCE_MS = 600;
 
 const state = {
@@ -8,6 +9,12 @@ const state = {
   tasks: [],
   projects: [],
   taskNames: [],
+  notifySettings: {
+    beforeEnabled: false,
+    beforeMinutes: 10,
+    elapsedEnabled: false,
+    elapsedMinutes: 60,
+  },
   tab: "new",
 };
 
@@ -32,6 +39,10 @@ const el = {
   userList: document.getElementById("userList"),
   masterProjectInput: document.getElementById("masterProjectInput"),
   masterTaskNameInput: document.getElementById("masterTaskNameInput"),
+  notifyBeforeEnabled: document.getElementById("notifyBeforeEnabled"),
+  notifyBeforeMinutes: document.getElementById("notifyBeforeMinutes"),
+  notifyElapsedEnabled: document.getElementById("notifyElapsedEnabled"),
+  notifyElapsedMinutes: document.getElementById("notifyElapsedMinutes"),
   masterProjectList: document.getElementById("masterProjectList"),
   masterTaskNameList: document.getElementById("masterTaskNameList"),
   activeList: document.getElementById("activeList"),
@@ -155,6 +166,18 @@ function normalizeTaskNames(names) {
   return [...unique];
 }
 
+function normalizeNotifySettings(raw) {
+  const src = raw && typeof raw === "object" ? raw : {};
+  const beforeMinutes = Math.max(1, Math.floor(Number(src.beforeMinutes || 10)));
+  const elapsedMinutes = Math.max(1, Math.floor(Number(src.elapsedMinutes || 60)));
+  return {
+    beforeEnabled: Boolean(src.beforeEnabled),
+    beforeMinutes,
+    elapsedEnabled: Boolean(src.elapsedEnabled),
+    elapsedMinutes,
+  };
+}
+
 function normalizeSubTask(raw) {
   if (!raw || typeof raw !== "object") return null;
   const name = String(raw.name || "").trim().slice(0, 200);
@@ -180,6 +203,9 @@ function normalizeTask(raw) {
     status: ["pending", "running", "paused", "completed"].includes(raw.status) ? raw.status : "pending",
     startedAt: Math.max(0, Math.floor(Number(raw.startedAt || 0) || 0)),
     completedAt: Math.max(0, Math.floor(Number(raw.completedAt || 0) || 0)),
+    plannedNotified: Boolean(raw.plannedNotified),
+    remainingNotified: Boolean(raw.remainingNotified),
+    elapsedNotified: Boolean(raw.elapsedNotified),
     parallel: Boolean(raw.parallel),
     subTasks: [],
   };
@@ -311,7 +337,9 @@ async function loadDay() {
 
   const key = storageKey(state.user);
   const data = await chromeStorageGet(key);
-  const userData = data[key] && typeof data[key] === "object" ? data[key] : { days: {}, projects: [], taskNames: [] };
+  const userData = data[key] && typeof data[key] === "object"
+    ? data[key]
+    : { days: {}, projects: [], taskNames: [], notifySettings: {} };
 
   state.date = date;
   state.tasks = normalizeTasks(userData.days?.[date]);
@@ -319,9 +347,11 @@ async function loadDay() {
   const taskNamesFromTasks = normalizeTaskNames(state.tasks.map((t) => t.name));
   state.projects = normalizeProjects([...(userData.projects || []), ...fromTasks]);
   state.taskNames = normalizeTaskNames([...(userData.taskNames || []), ...taskNamesFromTasks]);
+  state.notifySettings = normalizeNotifySettings(userData.notifySettings);
 
   renderSelects();
   renderMasterLists();
+  renderNotifySettings();
   renderTasks();
   show(`${state.user} / ${state.date} を読み込みました`);
 }
@@ -331,13 +361,16 @@ async function saveDay(showMessage = false) {
 
   const key = storageKey(state.user);
   const data = await chromeStorageGet(key);
-  const userData = data[key] && typeof data[key] === "object" ? data[key] : { days: {}, projects: [], taskNames: [] };
+  const userData = data[key] && typeof data[key] === "object"
+    ? data[key]
+    : { days: {}, projects: [], taskNames: [], notifySettings: {} };
 
   if (!userData.days || typeof userData.days !== "object") userData.days = {};
 
   userData.days[state.date] = normalizeTasks(state.tasks);
   userData.projects = normalizeProjects(state.projects);
   userData.taskNames = normalizeTaskNames(state.taskNames);
+  userData.notifySettings = normalizeNotifySettings(state.notifySettings);
   await chromeStorageSet({ [key]: userData });
 
   if (showMessage) show("保存しました");
@@ -357,10 +390,31 @@ function updateLoginState() {
   el.loginState.textContent = state.user ? `担当者: ${state.user}` : "担当者未設定";
 }
 
+function renderNotifySettings() {
+  el.notifyBeforeEnabled.checked = Boolean(state.notifySettings.beforeEnabled);
+  el.notifyBeforeMinutes.value = String(state.notifySettings.beforeMinutes);
+  el.notifyElapsedEnabled.checked = Boolean(state.notifySettings.elapsedEnabled);
+  el.notifyElapsedMinutes.value = String(state.notifySettings.elapsedMinutes);
+  el.notifyBeforeMinutes.disabled = !state.notifySettings.beforeEnabled;
+  el.notifyElapsedMinutes.disabled = !state.notifySettings.elapsedEnabled;
+}
+
+function updateNotifySettingsFromInputs() {
+  state.notifySettings = normalizeNotifySettings({
+    beforeEnabled: el.notifyBeforeEnabled.checked,
+    beforeMinutes: el.notifyBeforeMinutes.value,
+    elapsedEnabled: el.notifyElapsedEnabled.checked,
+    elapsedMinutes: el.notifyElapsedMinutes.value,
+  });
+  renderNotifySettings();
+}
+
 function setTab(tabName) {
-  state.tab = tabName;
-  document.querySelectorAll(".tab").forEach((btn) => btn.classList.toggle("active", btn.dataset.tab === tabName));
-  el.panels.forEach((panel) => panel.classList.toggle("hidden", panel.dataset.panel !== tabName));
+  const allowedTabs = new Set(["new", "active", "done", "master"]);
+  state.tab = allowedTabs.has(tabName) ? tabName : "new";
+  localStorage.setItem(PREF_LAST_TAB_KEY, state.tab);
+  document.querySelectorAll(".tab").forEach((btn) => btn.classList.toggle("active", btn.dataset.tab === state.tab));
+  el.panels.forEach((panel) => panel.classList.toggle("hidden", panel.dataset.panel !== state.tab));
 }
 
 /* ── Render: Suggest Lists ─────── */
@@ -672,9 +726,48 @@ function findTask(id) {
   return state.tasks.find((t) => t.id === id);
 }
 
+function createNotification(title, message, id) {
+  if (typeof chrome === "undefined" || !chrome.notifications?.create) return;
+  chrome.notifications.create(id, {
+    type: "basic",
+    iconUrl: chrome.runtime.getURL("icon.png"),
+    title,
+    message,
+  });
+}
+
+function notifyPlannedTimeReached(task, elapsedSec) {
+  const plannedSec = Math.max(0, Number(task.plannedMinutes || 0) * 60);
+  if (plannedSec <= 0) return;
+  createNotification(
+    "予定時間に到達しました",
+    `${task.name} (${toHourNumberText(plannedSec / 3600)}h) / 実績 ${toHourNumberText(elapsedSec / 3600)}h`,
+    `planned-${task.id}-${Date.now()}`
+  );
+}
+
+function notifyRemainingTime(task, remainingSec) {
+  createNotification(
+    "予定終了が近づいています",
+    `${task.name} の残り時間は約${Math.ceil(remainingSec / 60)}分です`,
+    `remaining-${task.id}-${Date.now()}`
+  );
+}
+
+function notifyElapsedTime(task, elapsedSec) {
+  createNotification(
+    "経過時間通知",
+    `${task.name} は${Math.floor(elapsedSec / 60)}分経過しています`,
+    `elapsed-${task.id}-${Date.now()}`
+  );
+}
+
 function startTask(id) {
   const task = findTask(id);
   if (!task || task.status === "completed" || task.status === "running") return;
+  task.plannedNotified = Boolean(task.plannedNotified);
+  task.remainingNotified = Boolean(task.remainingNotified);
+  task.elapsedNotified = Boolean(task.elapsedNotified);
   task.status = "running";
   task.startedAt = nowMs();
   renderTasks();
@@ -814,7 +907,7 @@ async function copyColumn(col) {
     return;
   }
   const rows = expandDoneTasks(done);
-  const labels = { name: "A:項目", planned: "C:想定", actual: "D:実際", user: "E:担当者", note: "H:備考" };
+  const labels = { name: "項目", planned: "想定", actual: "実際", user: "担当者", note: "備考" };
   const values = rows.map((r) => r[col] || "");
   await copyText(values.join("\n"));
   show(`${labels[col]} コピー (${values.length}件)`);
@@ -1037,6 +1130,9 @@ function addTask() {
       status: "pending",
       startedAt: 0,
       completedAt: 0,
+      plannedNotified: false,
+      remainingNotified: false,
+      elapsedNotified: false,
       parallel: true,
       subTasks,
     });
@@ -1063,6 +1159,9 @@ function addTask() {
       status: "pending",
       startedAt: 0,
       completedAt: 0,
+      plannedNotified: false,
+      remainingNotified: false,
+      elapsedNotified: false,
       parallel: false,
       subTasks: [],
     });
@@ -1090,6 +1189,11 @@ function applyRememberedUser() {
   }
 }
 
+function applyRememberedTab() {
+  const remembered = localStorage.getItem(PREF_LAST_TAB_KEY) || "new";
+  setTab(remembered);
+}
+
 function setUserFromInput() {
   const user = el.loginUserInput.value.trim();
   if (!validateUser(user)) {
@@ -1108,12 +1212,46 @@ function setUserFromInput() {
 
 function tickRunning() {
   const running = state.tasks.filter((t) => t.status === "running");
+  let hasStateChange = false;
   running.forEach((t) => {
+    const elapsed = elapsedSeconds(t);
     const node = document.querySelector(`[data-elapsed="${CSS.escape(t.id)}"]`);
-    if (node) node.textContent = formatClock(elapsedSeconds(t));
+    if (node) node.textContent = formatClock(elapsed);
+
+    const plannedSec = Math.max(0, Number(t.plannedMinutes || 0) * 60);
+    if (
+      state.notifySettings.beforeEnabled &&
+      plannedSec > 0 &&
+      !t.remainingNotified
+    ) {
+      const beforeSec = state.notifySettings.beforeMinutes * 60;
+      const remainingSec = plannedSec - elapsed;
+      if (remainingSec > 0 && remainingSec <= beforeSec) {
+        t.remainingNotified = true;
+        hasStateChange = true;
+        notifyRemainingTime(t, remainingSec);
+      }
+    }
+    if (
+      state.notifySettings.elapsedEnabled &&
+      !t.elapsedNotified
+    ) {
+      const thresholdSec = state.notifySettings.elapsedMinutes * 60;
+      if (elapsed >= thresholdSec) {
+        t.elapsedNotified = true;
+        hasStateChange = true;
+        notifyElapsedTime(t, elapsed);
+      }
+    }
+    if (plannedSec > 0 && elapsed >= plannedSec && !t.plannedNotified) {
+      t.plannedNotified = true;
+      hasStateChange = true;
+      notifyPlannedTimeReached(t, elapsed);
+    }
   });
   const runningTotalSec = running.reduce((acc, t) => acc + elapsedSeconds(t), 0);
   el.activeSummary.textContent = `進行中: ${running.length}件 / 合計タイマー: ${formatClock(runningTotalSec)}`;
+  if (hasStateChange) scheduleSave();
 }
 
 /* ── Event Listeners ───────────── */
@@ -1146,6 +1284,22 @@ el.masterProjectInput.addEventListener("keydown", (ev) => {
 });
 el.masterTaskNameInput.addEventListener("keydown", (ev) => {
   if (ev.key === "Enter") addMasterTaskName();
+});
+el.notifyBeforeEnabled.addEventListener("change", () => {
+  updateNotifySettingsFromInputs();
+  scheduleSave();
+});
+el.notifyBeforeMinutes.addEventListener("input", () => {
+  updateNotifySettingsFromInputs();
+  scheduleSave();
+});
+el.notifyElapsedEnabled.addEventListener("change", () => {
+  updateNotifySettingsFromInputs();
+  scheduleSave();
+});
+el.notifyElapsedMinutes.addEventListener("input", () => {
+  updateNotifySettingsFromInputs();
+  scheduleSave();
 });
 el.newPlanned.addEventListener("input", () => {
   if (el.parallelToggle.checked) return;
@@ -1217,8 +1371,10 @@ el.tabs.addEventListener("click", (ev) => {
   el.dateInput.value = todayStr();
   renderSelects();
   renderMasterLists();
+  renderNotifySettings();
   renderTasks();
   applyRememberedUser();
+  applyRememberedTab();
   loadUsers().catch(() => {});
   if (state.user) loadDay().catch(() => {});
   setInterval(tickRunning, 1000);
