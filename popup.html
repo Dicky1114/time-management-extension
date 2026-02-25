@@ -37,7 +37,10 @@
       </nav>
 
       <section class="card tab-panel" data-panel="new">
-        <h2>新規工数の設定</h2>
+        <div class="section-header">
+          <h2>新規工数の設定</h2>
+          <button id="importCalendarBtn" class="btn-calendar" type="button" title="Googleカレンダーから取込">&#x1F4C5;</button>
+        </div>
         <div class="stack">
           <label class="check">
             <input id="parallelToggle" type="checkbox" />
@@ -108,12 +111,6 @@
             <input id="newNote" placeholder="メモ" />
           </label>
           <button id="addBtn" type="button">追加</button>
-        </div>
-        <div class="import-divider"></div>
-        <div class="stack import-section">
-          <h3>Googleカレンダーから取込</h3>
-          <p class="import-desc">選択中の日付のイベントを工数として一括取込します。案件名は「カレンダー」固定、工数名にイベントタイトルが入ります。</p>
-          <button id="importCalendarBtn" class="btn-import" type="button">カレンダーからインポート</button>
         </div>
       </section>
 

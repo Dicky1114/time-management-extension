@@ -769,33 +769,32 @@ button.danger:hover {
   transition: color 200ms;
 }
 
-/* ── Calendar Import ───────────── */
+/* ── Section Header ────────────── */
 
-.import-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 4px 0;
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
 }
 
-.import-section {
-  padding-top: 4px;
+.section-header h2 {
+  margin-bottom: 0;
 }
 
-.import-desc {
-  font-size: 10px;
-  color: var(--muted);
-  line-height: 1.5;
-}
-
-.btn-import {
+.btn-calendar {
   background: #4285f4;
+  padding: 4px 8px;
+  font-size: 16px;
+  line-height: 1;
+  border-radius: var(--radius-xs);
 }
 
-.btn-import:hover {
+.btn-calendar:hover {
   background: #3367d6;
 }
 
-.btn-import:disabled {
+.btn-calendar:disabled {
   background: #9ca3af;
   cursor: not-allowed;
   transform: none;

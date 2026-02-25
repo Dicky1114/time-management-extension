@@ -1247,12 +1247,13 @@ async function importFromCalendar() {
 
   const btn = document.getElementById("importCalendarBtn");
   btn.disabled = true;
-  btn.textContent = "接続中...";
+  btn.dataset.origText = btn.textContent;
+  btn.textContent = "...";
 
   try {
     const token = await getCalendarAuthToken();
 
-    btn.textContent = "取得中...";
+    btn.textContent = "\u2026";
     const data = await fetchCalendarEvents(token, state.date);
 
     if (!data.items || data.items.length === 0) {
@@ -1306,7 +1307,7 @@ async function importFromCalendar() {
     show(`カレンダーインポート失敗: ${e.message}`, true);
   } finally {
     btn.disabled = false;
-    btn.textContent = "カレンダーからインポート";
+    btn.textContent = btn.dataset.origText || "\uD83D\uDCC5";
   }
 }
 
