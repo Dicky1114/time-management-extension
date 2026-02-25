@@ -1238,6 +1238,13 @@ async function importFromCalendar() {
     return;
   }
 
+  const manifest = chrome.runtime.getManifest();
+  const clientId = manifest.oauth2?.client_id || "";
+  if (!clientId || clientId.startsWith("YOUR_CLIENT_ID")) {
+    show("manifest.jsonにGoogle OAuth2のclient_idを設定してください", true);
+    return;
+  }
+
   const btn = document.getElementById("importCalendarBtn");
   btn.disabled = true;
   btn.textContent = "接続中...";

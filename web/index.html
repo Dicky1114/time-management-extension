@@ -48,7 +48,36 @@
             <input id="newProjectName" placeholder="案件名を追加" />
             <button id="addProjectBtn">追加</button>
           </div>
-          <ul id="projectList" class="project-list"></ul>
+          <ul id="projectList" class="master-list"></ul>
+        </section>
+
+        <section class="side-panel">
+          <h2>工数名マスタ</h2>
+          <div class="row wrap">
+            <input id="newTaskNameMaster" placeholder="工数名を追加" />
+            <button id="addTaskNameBtn">追加</button>
+          </div>
+          <ul id="taskNameList" class="master-list"></ul>
+        </section>
+
+        <section class="side-panel">
+          <h2>通知設定</h2>
+          <label class="checkbox-row">
+            <input id="notifyBeforeEnabled" type="checkbox" />
+            予定終了の残り時間で通知
+          </label>
+          <label>
+            残り(分)
+            <input id="notifyBeforeMinutes" type="number" min="1" step="1" value="10" />
+          </label>
+          <label class="checkbox-row">
+            <input id="notifyElapsedEnabled" type="checkbox" />
+            経過時間で通知
+          </label>
+          <label>
+            経過(分)
+            <input id="notifyElapsedMinutes" type="number" min="1" step="1" value="60" />
+          </label>
         </section>
       </aside>
 
@@ -56,17 +85,51 @@
         <section class="panel">
           <div class="panel-head">
             <h2>新規工数</h2>
-            <p class="subtext">工数名の横に案件名を付けて管理できます</p>
           </div>
-          <div class="row wrap">
+          <label class="checkbox-row">
+            <input id="parallelToggle" type="checkbox" />
+            並列モード
+          </label>
+
+          <div id="normalFields" class="row wrap">
             <label>
               工数名
-              <input id="newName" placeholder="例: 仕様確認" />
+              <input id="newName" placeholder="例: 仕様確認" list="taskNameDatalist" />
             </label>
             <label>
               案件名
-              <select id="newProjectSelect"></select>
+              <input id="newProjectSelect" placeholder="案件を選択" list="projectDatalist" />
             </label>
+          </div>
+
+          <div id="parallelFields" class="hidden">
+            <div class="row wrap">
+              <label>
+                グループ名
+                <input id="parallelGroupName" placeholder="例: 定例MTG" />
+              </label>
+            </div>
+            <div class="sub-builder">
+              <div class="row wrap">
+                <label>
+                  案件名
+                  <input id="parallelProject" placeholder="案件を選択" list="projectDatalist" />
+                </label>
+                <label>
+                  工数名
+                  <input id="parallelTaskName" placeholder="工数名" list="taskNameDatalist" />
+                </label>
+                <label>
+                  予測(h)
+                  <input id="parallelPlanned" type="number" step="0.5" min="0.5" value="0.5" />
+                </label>
+                <button id="addSubTaskBtn" type="button">＋</button>
+              </div>
+              <div id="subTaskList" class="sub-task-list"></div>
+            </div>
+          </div>
+
+          <div class="row wrap">
             <label>
               予定(h)
               <input id="newPlanned" type="number" min="0" step="0.5" value="1" />
@@ -77,50 +140,35 @@
             </label>
             <button id="addBtn">追加</button>
           </div>
-        </section>
 
-        <section class="panel">
-          <h2>作業中/未完了</h2>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>工数名</th>
-                  <th>案件名</th>
-                  <th>予定</th>
-                  <th>実績</th>
-                  <th>備考</th>
-                  <th>状態</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody id="activeBody"></tbody>
-            </table>
-          </div>
+          <datalist id="projectDatalist"></datalist>
+          <datalist id="taskNameDatalist"></datalist>
         </section>
 
         <section class="panel">
           <div class="panel-head row between">
-            <h2>完了一覧（TSVコピー）</h2>
-            <button id="copyBtn">全件TSVコピー</button>
+            <h2>作業中/未完了</h2>
+            <p id="activeSummary" class="subtext"></p>
           </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>日付</th>
-                  <th>工数名</th>
-                  <th>案件名</th>
-                  <th>予定(h)</th>
-                  <th>実績(h)</th>
-                  <th>備考</th>
-                  <th>完了時刻</th>
-                  <th>コピー</th>
-                </tr>
-              </thead>
-              <tbody id="doneBody"></tbody>
-            </table>
+          <div class="task-list" id="activeList"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head row between">
+            <h2>完了一覧</h2>
+            <div class="row">
+              <button id="copyBtn">全件コピー</button>
+              <button id="clearDoneBtn" class="danger">全削除</button>
+            </div>
           </div>
+          <div class="copy-columns">
+            <button data-action="copy-col" data-col="name" type="button">項目</button>
+            <button data-action="copy-col" data-col="planned" type="button">想定</button>
+            <button data-action="copy-col" data-col="actual" type="button">実際</button>
+            <button data-action="copy-col" data-col="user" type="button">担当者</button>
+            <button data-action="copy-col" data-col="note" type="button">備考</button>
+          </div>
+          <div class="task-list" id="doneList"></div>
         </section>
 
         <p id="message"></p>
