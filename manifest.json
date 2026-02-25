@@ -2,8 +2,16 @@
   "manifest_version": 3,
   "name": "工数管理タイマー",
   "description": "1日単位の工数をユーザー別に管理する軽量タイマー",
-  "version": "1.1.0",
-  "permissions": ["storage", "clipboardWrite", "notifications"],
+  "version": "1.2.0",
+  "permissions": ["storage", "clipboardWrite", "notifications", "identity", "alarms"],
+  "host_permissions": ["https://www.googleapis.com/*"],
+  "oauth2": {
+    "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": ["https://www.googleapis.com/auth/calendar.readonly"]
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_title": "工数管理",
     "default_popup": "popup.html"

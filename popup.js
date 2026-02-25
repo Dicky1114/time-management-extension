@@ -1178,6 +1178,131 @@ function addTask() {
   setTab("active");
 }
 
+/* ── Google Calendar Import ────── */
+
+function getCalendarAuthToken() {
+  return new Promise((resolve, reject) => {
+    if (typeof chrome === "undefined" || !chrome.identity?.getAuthToken) {
+      reject(new Error("この機能はChrome拡張機能でのみ利用可能です"));
+      return;
+    }
+    chrome.identity.getAuthToken({ interactive: true }, (token) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+      if (!token) {
+        reject(new Error("認証トークンを取得できませんでした"));
+        return;
+      }
+      resolve(token);
+    });
+  });
+}
+
+async function fetchCalendarEvents(token, dateStr) {
+  const timeMin = new Date(`${dateStr}T00:00:00`).toISOString();
+  const nextDay = new Date(`${dateStr}T00:00:00`);
+  nextDay.setDate(nextDay.getDate() + 1);
+  const timeMax = nextDay.toISOString();
+
+  const url = new URL("https://www.googleapis.com/calendar/v3/calendars/primary/events");
+  url.searchParams.set("timeMin", timeMin);
+  url.searchParams.set("timeMax", timeMax);
+  url.searchParams.set("singleEvents", "true");
+  url.searchParams.set("orderBy", "startTime");
+  url.searchParams.set("maxResults", "100");
+
+  const res = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      chrome.identity.removeCachedAuthToken({ token });
+      throw new Error("認証が期限切れです。再度お試しください");
+    }
+    throw new Error(`Calendar APIエラー: ${res.status}`);
+  }
+
+  return res.json();
+}
+
+async function importFromCalendar() {
+  if (!state.user) {
+    show("担当者を入力してください", true);
+    return;
+  }
+  if (!state.date) {
+    show("日付を選択してください", true);
+    return;
+  }
+
+  const btn = document.getElementById("importCalendarBtn");
+  btn.disabled = true;
+  btn.textContent = "接続中...";
+
+  try {
+    const token = await getCalendarAuthToken();
+
+    btn.textContent = "取得中...";
+    const data = await fetchCalendarEvents(token, state.date);
+
+    if (!data.items || data.items.length === 0) {
+      show("この日のカレンダーイベントはありません");
+      return;
+    }
+
+    const projectName = ensureProjectExists("カレンダー");
+    let importCount = 0;
+
+    for (const event of data.items) {
+      if (event.status === "cancelled") continue;
+
+      const title = event.summary || "(無題)";
+      let plannedMinutes = 0;
+
+      if (event.start?.dateTime && event.end?.dateTime) {
+        const start = new Date(event.start.dateTime);
+        const end = new Date(event.end.dateTime);
+        plannedMinutes = Math.max(0, Math.round((end - start) / 60000));
+      }
+
+      const taskName = ensureTaskNameExists(title);
+
+      state.tasks.push({
+        id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}-cal${importCount}`,
+        name: taskName,
+        project: projectName,
+        plannedMinutes,
+        actualSeconds: 0,
+        note: "",
+        status: "pending",
+        startedAt: 0,
+        completedAt: 0,
+        plannedNotified: false,
+        remainingNotified: false,
+        elapsedNotified: false,
+        parallel: false,
+        subTasks: [],
+      });
+      importCount++;
+    }
+
+    renderSelects();
+    renderMasterLists();
+    renderTasks();
+    scheduleSave();
+    show(`${importCount}件のカレンダーイベントをインポートしました`);
+    setTab("active");
+  } catch (e) {
+    show(`カレンダーインポート失敗: ${e.message}`, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "カレンダーからインポート";
+  }
+}
+
 /* ── Login ─────────────────────── */
 
 function applyRememberedUser() {
@@ -1257,6 +1382,7 @@ function tickRunning() {
 /* ── Event Listeners ───────────── */
 
 document.getElementById("addBtn").addEventListener("click", addTask);
+document.getElementById("importCalendarBtn").addEventListener("click", () => importFromCalendar().catch((e) => show(`インポート失敗: ${e.message}`, true)));
 document.getElementById("copyAllHtmlBtn").addEventListener("click", () => copyAllDoneHtml().catch((e) => show(`コピー失敗: ${e.message}`, true)));
 document.getElementById("clearDoneBtn").addEventListener("click", clearDoneTasks);
 document.getElementById("addMasterProjectBtn").addEventListener("click", addMasterProject);

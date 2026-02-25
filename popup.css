@@ -768,3 +768,35 @@ button.danger:hover {
   font-weight: 600;
   transition: color 200ms;
 }
+
+/* ── Calendar Import ───────────── */
+
+.import-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+.import-section {
+  padding-top: 4px;
+}
+
+.import-desc {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.btn-import {
+  background: #4285f4;
+}
+
+.btn-import:hover {
+  background: #3367d6;
+}
+
+.btn-import:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
