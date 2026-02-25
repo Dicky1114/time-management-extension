@@ -6,7 +6,7 @@
   "permissions": ["storage", "clipboardWrite", "notifications", "identity", "alarms"],
   "host_permissions": ["https://www.googleapis.com/*"],
   "oauth2": {
-    "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
+    "client_id": "990076197577-an68ltr9glge0qtsvv7i71u5ormv22t7.apps.googleusercontent.com",
     "scopes": ["https://www.googleapis.com/auth/calendar.readonly"]
   },
   "background": {
