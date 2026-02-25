@@ -39,7 +39,7 @@ async function checkNotifications() {
           hasChanges = true;
           chrome.notifications.create(`planned-${task.id}-${Date.now()}`, {
             type: "basic",
-            iconUrl: "icon.png",
+            iconUrl: "icon128.png",
             title: "予定時間に到達しました",
             message: `${task.name} の予定時間に達しました`,
           });
@@ -59,7 +59,7 @@ async function checkNotifications() {
               `remaining-${task.id}-${Date.now()}`,
               {
                 type: "basic",
-                iconUrl: "icon.png",
+                iconUrl: "icon128.png",
                 title: "予定終了が近づいています",
                 message: `${task.name} の残り時間は約${Math.ceil(remaining / 60)}分です`,
               },
@@ -74,7 +74,7 @@ async function checkNotifications() {
             hasChanges = true;
             chrome.notifications.create(`elapsed-${task.id}-${Date.now()}`, {
               type: "basic",
-              iconUrl: "icon.png",
+              iconUrl: "icon128.png",
               title: "経過時間通知",
               message: `${task.name} は${Math.floor(elapsed / 60)}分経過しています`,
             });

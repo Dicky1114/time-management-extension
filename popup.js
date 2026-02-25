@@ -730,7 +730,7 @@ function createNotification(title, message, id) {
   if (typeof chrome === "undefined" || !chrome.notifications?.create) return;
   chrome.notifications.create(id, {
     type: "basic",
-    iconUrl: chrome.runtime.getURL("icon.png"),
+    iconUrl: chrome.runtime.getURL("icon128.png"),
     title,
     message,
   });
